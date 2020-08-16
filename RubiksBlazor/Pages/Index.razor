@@ -1,0 +1,75 @@
+﻿@page "/"
+@using RubiksCube
+@inject IJSRuntime jsRuntime;
+
+<canvas class="fullscreen" @ref="TheCanvas"></canvas>
+
+<div class="overlay">
+<button @onclick="Rotate">Rotate</button>
+</div>
+@code
+{
+    private Cube Cube = new Cube();
+
+    private ElementReference TheCanvas;
+
+    protected override void OnInitialized()
+    {
+        jsRuntime.InvokeVoidAsync("setupScene", TheCanvas);
+
+        Build(Cube);
+    }
+
+    private void Build(Cube cube)
+    {
+
+        jsRuntime.InvokeVoidAsync("clearScene");
+        for (int x = -1; x < 2; x++)
+        {
+            for (int y = -1; y < 2; y++)
+            {
+                for (int z = -1; z < 2; z++)
+                {
+                    if (x != 0 || y != 0 || z != 0)
+                    {
+                        var right = x == 1 ? FaceXY(cube.Right, -z, y) : "-";
+                        var left = x == -1 ? FaceXY(cube.Left, z, y) : "-";
+                        var top = y == 1 ? FaceXY(cube.Top, x, -z) : "-";
+                        var bottom = y == -1 ? FaceXY(cube.Bottom, x, z) : "-";
+                        var front = z == 1 ? FaceXY(cube.Front, x, y) : "-";
+                        var back = z == -1 ? FaceXY(cube.Back, -x, -y) : "-";
+
+                        var sides = right + left + top + bottom + front + back;
+                        jsRuntime.InvokeVoidAsync("addPiece", x, y, z, sides);
+                    }
+                }
+            }
+        }
+    }
+
+    private string FaceXY(Face face, int x, int y)
+    {
+        var piece = (x,y) switch
+        {
+            (-1,1) => face.TopLeft,
+            (0,1) => face.TopMiddle,
+            (1,1) => face.TopRight,
+            (-1,0) => face.MiddleLeft,
+            (0,0) => face.MiddleMiddle,
+            (1,0) => face.MiddleRight,
+            (-1,-1)=>face.BottomLeft,
+            (0,-1) =>face.BottomMiddle,
+            (1,-1)=>face.BottomRight,
+            _ => throw new Exception("Bad xy")
+
+        };
+        return piece.ToString().Substring(0, 1);
+    }
+
+    private void Rotate()
+    {
+        Cube = Cube.RotateFront(Rotation.Clockwise);
+
+        Build(Cube);
+    }
+}
