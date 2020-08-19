@@ -1,7 +1,6 @@
 ﻿import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r119/build/three.module.js';
-import { GUI } from 'https://threejsfundamentals.org/threejs/../3rdparty/dat.gui.module.js';
+//import { GUI } from 'https://threejsfundamentals.org/threejs/../3rdparty/dat.gui.module.js';
 
-let cubes = [];
 const loader = new THREE.TextureLoader();
 
 const boxWidth = 1;
@@ -9,12 +8,12 @@ const boxHeight = 1;
 const boxDepth = 1;
 const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
 
-const sideRed = new THREE.MeshBasicMaterial({ map: loader.load('images/Red.png') });
-const sideBlue = new THREE.MeshBasicMaterial({ map: loader.load('images/Blue.png') });
-const sideGreen = new THREE.MeshBasicMaterial({ map: loader.load('images/Green.png') });
-const sideYellow = new THREE.MeshBasicMaterial({ map: loader.load('images/Yellow.png') });
-const sideOrange = new THREE.MeshBasicMaterial({ map: loader.load('images/Orange.png') });
-const sideWhite = new THREE.MeshBasicMaterial({ map: loader.load('images/White.png') });
+const sideRed = new THREE.MeshPhongMaterial({ map: loader.load('images/Red.png') });
+const sideBlue = new THREE.MeshPhongMaterial({ map: loader.load('images/Blue.png') });
+const sideGreen = new THREE.MeshPhongMaterial({ map: loader.load('images/Green.png') });
+const sideYellow = new THREE.MeshPhongMaterial({ map: loader.load('images/Yellow.png') });
+const sideOrange = new THREE.MeshPhongMaterial({ map: loader.load('images/Orange.png') });
+const sideWhite = new THREE.MeshPhongMaterial({ map: loader.load('images/White.png') });
 const sideNone = new THREE.MeshBasicMaterial({ color: 0x000000 });
 const materials = [
     sideRed, sideBlue, sideGreen, sideYellow, sideOrange, sideWhite, sideNone
@@ -31,30 +30,41 @@ var gui;
 
 const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 camera.position.z = 10;
-camera.position.y = 3;
-camera.rotation.x = -0.3;
 
 const wholeCube = new THREE.Object3D();
+wholeCube.rotation.x = 0.3;
+wholeCube.rotation.y = 0.3;
 
 const scene = new THREE.Scene();
 
 {
     const color = 0xFFFFFF;
-    const intensity = 3;
+    const intensity = 0.5;
+    const light = new THREE.AmbientLight(color, intensity);
+    light.position.set(0, 0, 10);
+    scene.add(light);
+}
+
+{
+    const color = 0xFFFFFF;
+    const intensity = 1;
     const light = new THREE.PointLight(color, intensity);
+    light.position.set(0, 0, 10);
     scene.add(light);
 }
 
 scene.add(wholeCube);
 
+var cubes = [];
+
+var rotating = null;
 
 window.setupScene = (c) => {
-    alert(c);
     canvas = document.querySelector('#c');
     renderer = new THREE.WebGLRenderer({ canvas });
 
     renderer.setClearColor(0x808080);
-    gui = new GUI();
+//    gui = new GUI();
 
     requestAnimationFrame(render);
 
@@ -74,7 +84,8 @@ window.addPiece = (x, y, z, colour) => {
     const bottomSide = getColour(colour[3]);
     const frontSide = getColour(colour[4]);
     const backSide = getColour(colour[5]);
-    cubes.push(makeCube(x, y, z, [rightSide, leftSide, topSide, bottomSide, frontSide, backSide]));
+    const ci = cubeIndex(x, y, z);
+    cubes[ci]=makeCube(x, y, z, [rightSide, leftSide, topSide, bottomSide, frontSide, backSide]);
 }
 
 window.clearScene = () => {
@@ -82,6 +93,26 @@ window.clearScene = () => {
         cube.parent.remove(cube);
     });
     cubes = [];
+}
+
+window.rotate = (fx, fy, fz, tx, ty, tz, xr, yr, zr, callBack) => {
+    rotating = {
+        fromX: fx,
+        fromY: fy,
+        fromZ: fz,
+        toX: tx,
+        toY: ty,
+        toZ: tz,
+        rotateX: xr,
+        rotateY: yr,
+        rotateZ: zr,
+        time: 0,
+        callBack: callBack
+    }
+}
+
+function cubeIndex(x, y, z) {
+    return ((z + 1) * 3 + (y + 1)) * 3 + x + 1;
 }
 
 function getColour(colour) 
@@ -127,18 +158,28 @@ function render(time) {
     }
 
     const rot = time;
-    wholeCube.rotation.y = rot * .2;
+    //wholeCube.rotation.y = rot * .2;
 
-    //for (let c = 0; c < 9; c++) {
-    //    cubes[c].rotation.x = rot * 1;
-    //}
-
-    //cubes.forEach((cube, ndx) => {
-    //    const speed = .2 + ndx * .1;
-    //    const rot = time * speed;
-    //    cube.rotation.x = rot;
-    //    cube.rotation.y = rot;
-    //});
+    if (rotating != null) {
+        if (rotating.time == 0) {
+            rotating.time = time;
+        }
+        var pieceRotDeg = Math.min((time - rotating.time) * 2 * 90, 90);
+        var pieceRot = pieceRotDeg * Math.PI / 180;
+        for (let x = rotating.fromX; x <= rotating.toX; x++) {
+            for (let y = rotating.fromY; y <= rotating.toY; y++) {
+                for (let z = rotating.fromZ; z <= rotating.toZ; z++) {
+                    var ci = cubeIndex(x, y, z);
+                    cubes[ci].rotation.x = rotating.rotateX * pieceRot;
+                    cubes[ci].rotation.y = rotating.rotateY * pieceRot;
+                    cubes[ci].rotation.z = rotating.rotateZ * pieceRot;
+                }
+            }
+        }
+        if (pieceRotDeg == 90) {
+            rotating.callBack.invokeMethodAsync('RotateComplete');
+        }
+    }
 
     renderer.render(scene, camera);
 

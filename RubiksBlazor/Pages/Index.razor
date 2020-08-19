@@ -1,23 +1,42 @@
 ﻿@page "/"
 @using RubiksCube
+@using System.Runtime.CompilerServices
 @inject IJSRuntime jsRuntime;
 
-<canvas class="fullscreen" @ref="TheCanvas"></canvas>
+<canvas class="fullscreen" @ref="_theCanvas"></canvas>
 
 <div class="overlay">
-<button @onclick="Rotate">Rotate</button>
+    <button @onclick="RotateXClock">Rotate ^</button>
+    <button @onclick="RotateXAnti">Rotate v</button>
+    <button @onclick="RotateYClock">Rotate &lt;</button>
+    <button @onclick="RotateYAnti">Rotate &gt;</button>
+    <button @onclick="RotateZClock">Rotate ,-&gt;</button>
+    <button @onclick="RotateZAnti">Rotate &lt;-,</button>
+    <br />
+    <button @onclick="LeftUp">Left ^</button>
+    <button @onclick="LeftDown">Left v</button>
+    <button @onclick="RightUp">Right ^</button>
+    <button @onclick="RightDown">Right v</button>
+    <button @onclick="TopLeft">Top &lt;</button>
+    <button @onclick="TopRight">Top &gt;</button>
+    <button @onclick="BottomLeft">Bottom &lt;</button>
+    <button @onclick="BottomRight">Bottom &gt;</button>
+    <button @onclick="FrontClock">Front ,-&gt;</button>
+    <button @onclick="FrontAnti">Front &lt;-,</button>
 </div>
 @code
 {
-    private Cube Cube = new Cube();
+    private Cube _cube = new Cube();
 
-    private ElementReference TheCanvas;
+    private ElementReference _theCanvas;
 
     protected override void OnInitialized()
     {
-        jsRuntime.InvokeVoidAsync("setupScene", TheCanvas);
+        _referenceForJSCallBack = DotNetObjectReference.Create(this);
 
-        Build(Cube);
+        jsRuntime.InvokeVoidAsync("setupScene", _theCanvas);
+
+        Build(_cube);
     }
 
     private void Build(Cube cube)
@@ -30,18 +49,15 @@
             {
                 for (int z = -1; z < 2; z++)
                 {
-                    if (x != 0 || y != 0 || z != 0)
-                    {
-                        var right = x == 1 ? FaceXY(cube.Right, -z, y) : "-";
-                        var left = x == -1 ? FaceXY(cube.Left, z, y) : "-";
-                        var top = y == 1 ? FaceXY(cube.Top, x, -z) : "-";
-                        var bottom = y == -1 ? FaceXY(cube.Bottom, x, z) : "-";
-                        var front = z == 1 ? FaceXY(cube.Front, x, y) : "-";
-                        var back = z == -1 ? FaceXY(cube.Back, -x, -y) : "-";
+                    var right = x == 1 ? FaceXY(cube.Right, -z, y) : "-";
+                    var left = x == -1 ? FaceXY(cube.Left, z, y) : "-";
+                    var top = y == 1 ? FaceXY(cube.Top, x, -z) : "-";
+                    var bottom = y == -1 ? FaceXY(cube.Bottom, x, z) : "-";
+                    var front = z == 1 ? FaceXY(cube.Front, x, y) : "-";
+                    var back = z == -1 ? FaceXY(cube.Back, -x, -y) : "-";
 
-                        var sides = right + left + top + bottom + front + back;
-                        jsRuntime.InvokeVoidAsync("addPiece", x, y, z, sides);
-                    }
+                    var sides = right + left + top + bottom + front + back;
+                    jsRuntime.InvokeVoidAsync("addPiece", x, y, z, sides);
                 }
             }
         }
@@ -66,10 +82,107 @@
         return piece.ToString().Substring(0, 1);
     }
 
-    private void Rotate()
-    {
-        Cube = Cube.RotateFront(Rotation.Clockwise);
+    private DotNetObjectReference<Index> _referenceForJSCallBack;
 
-        Build(Cube);
+    private bool _isRotating;
+
+    [JSInvokable]
+    public async void RotateComplete()
+    {
+        Build(_cube);
+        _isRotating = false;
     }
+
+    private void Rotate(int fx, int fy, int fz, int tx, int ty, int tz, int xr, int yr, int zr)
+    {
+        _isRotating = true;
+        jsRuntime.InvokeVoidAsync("rotate", fx, fy, fz, tx, ty, tz, xr, yr, zr, _referenceForJSCallBack);
+
+    }
+
+    // These are visual rotations and integrity is destroyed on completion
+    // You need to supply the destination cube in Cube
+    // This will updated the model on completion using the RotateComplete callback
+
+    private void RotateXClock()
+    {
+        Rotate(-1, -1, -1, 1, 1, 1, -1, 0, 0);
+    }
+
+    private void RotateXAnti()
+    {
+        Rotate(-1, -1, -1, 1, 1, 1, 1, 0, 0);
+    }
+
+    private void RotateYClock()
+    {
+        Rotate(-1, -1, -1, 1, 1, 1, 0, -1, 0);
+    }
+
+    private void RotateYAnti()
+    {
+        Rotate(-1, -1, -1, 1, 1, 1, 0, 1, 0);
+    }
+
+    private void RotateZClock()
+    {
+        Rotate(-1, -1, -1, 1, 1, 1, 0, 0, -1);
+    }
+
+    private void RotateZAnti()
+    {
+        Rotate(-1, -1, -1, 1, 1, 1, 0, 0, 1);
+    }
+
+    private void LeftUp()
+    {
+        Rotate(-1, -1, -1, -1, 1, 1, -1, 0, 0);
+    }
+
+    private void LeftDown()
+    {
+        Rotate(-1, -1, -1, -1, 1, 1, 1, 0, 0);
+    }
+
+    private void RightUp()
+    {
+        Rotate(1, -1, -1, 1, 1, 1, -1, 0, 0);
+    }
+
+    private void RightDown()
+    {
+        Rotate(1, -1, -1, 1, 1, 1, 1, 0, 0);
+    }
+
+    private void TopLeft()
+    {
+        Rotate(-1, 1, -1, 1, 1, 1, 0, -1, 0);
+    }
+
+    private void TopRight()
+    {
+        Rotate(-1, 1, -1, 1, 1, 1, 0, 1, 0);
+    }
+
+    private void BottomLeft()
+    {
+        Rotate(-1, -1, -1, 1, -1, 1, 0, -1, 0);
+    }
+
+    private void BottomRight()
+    {
+        Rotate(-1, -1, -1, 1, -1, 1, 0, 1, 0);
+    }
+
+    private void FrontClock()
+    {
+        _cube = _cube.RotateFront(Rotation.Clockwise);
+        Rotate(-1, -1, 1, 1, 1, 1, 0, 0, -1);
+    }
+
+    private void FrontAnti()
+    {
+        Rotate(-1, -1, 1, 1, 1, 1, 0, 0, 1);
+    }
+
 }
