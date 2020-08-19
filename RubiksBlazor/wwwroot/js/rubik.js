@@ -60,7 +60,7 @@ var cubes = [];
 var rotating = null;
 
 window.setupScene = (c) => {
-    canvas = c; //document.getElementById("c2");
+    canvas = c;
     renderer = new THREE.WebGLRenderer({ canvas });
 
     renderer.setClearColor(0x808080);
@@ -156,9 +156,6 @@ function render(time) {
         camera.aspect = canvas.clientWidth / canvas.clientHeight;
         camera.updateProjectionMatrix();
     }
-
-    const rot = time;
-    //wholeCube.rotation.y = rot * .2;
 
     if (rotating != null) {
         if (rotating.time == 0) {
