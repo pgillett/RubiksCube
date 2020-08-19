@@ -60,7 +60,7 @@ var cubes = [];
 var rotating = null;
 
 window.setupScene = (c) => {
-    canvas = document.querySelector('#c');
+    canvas = c; //document.getElementById("c2");
     renderer = new THREE.WebGLRenderer({ canvas });
 
     renderer.setClearColor(0x808080);

@@ -30,13 +30,17 @@
 
     private ElementReference _theCanvas;
 
-    protected override void OnInitialized()
+    protected override void OnAfterRender(bool firstRender)
     {
-        _referenceForJSCallBack = DotNetObjectReference.Create(this);
+        if (firstRender)
+        {
+            _referenceForJSCallBack = DotNetObjectReference.Create(this);
 
-        jsRuntime.InvokeVoidAsync("setupScene", _theCanvas);
+            jsRuntime.InvokeVoidAsync("setupScene", _theCanvas);
 
-        Build(_cube);
+            Build(_cube);
+        }
+        base.OnAfterRender(firstRender);
     }
 
     private void Build(Cube cube)
