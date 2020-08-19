@@ -175,6 +175,7 @@ function render(time) {
         }
         if (pieceRotDeg == 90) {
             rotating.callBack.invokeMethodAsync('RotateComplete');
+            rotating = null;
         }
     }
 
