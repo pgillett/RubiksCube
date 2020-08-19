@@ -19,7 +19,7 @@ const materials = [
     sideRed, sideBlue, sideGreen, sideYellow, sideOrange, sideWhite, sideNone
 ];
 
-const fov = 45;
+const fov = 35;
 const aspect = 2; // the canvas default
 const near = 0.1;
 const far = 50;
@@ -28,12 +28,21 @@ var canvas;
 var renderer;
 var gui;
 
+var showBack = false;
+
 const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 camera.position.z = 10;
 
 const wholeCube = new THREE.Object3D();
 wholeCube.rotation.x = 0.3;
-wholeCube.rotation.y = 0.3;
+wholeCube.rotation.y = -0.2;
+wholeCube.position.x = -2;
+
+const wholeCubeBack = new THREE.Object3D();
+wholeCubeBack.rotation.x = 3.44;
+wholeCubeBack.rotation.y = -0.2;
+wholeCubeBack.position.x = 3;
+wholeCubeBack.position.z = -4;
 
 const scene = new THREE.Scene();
 
@@ -47,13 +56,14 @@ const scene = new THREE.Scene();
 
 {
     const color = 0xFFFFFF;
-    const intensity = 1;
+    const intensity = 0.3;
     const light = new THREE.PointLight(color, intensity);
     light.position.set(0, 0, 10);
     scene.add(light);
 }
 
 scene.add(wholeCube);
+scene.add(wholeCubeBack);
 
 var cubes = [];
 
@@ -85,14 +95,25 @@ window.addPiece = (x, y, z, colour) => {
     const frontSide = getColour(colour[4]);
     const backSide = getColour(colour[5]);
     const ci = cubeIndex(x, y, z);
-    cubes[ci]=makeCube(x, y, z, [rightSide, leftSide, topSide, bottomSide, frontSide, backSide]);
+    makeCube(ci, x, y, z, [rightSide, leftSide, topSide, bottomSide, frontSide, backSide]);
 }
 
-window.clearScene = () => {
+window.clearScene = (back) => {
     cubes.forEach((cube) => {
         cube.parent.remove(cube);
     });
     cubes = [];
+    showBack = back;
+
+    if (showBack) {
+        wholeCube.rotation.x = 0.3;
+        wholeCube.rotation.y = -0.2;
+        wholeCube.position.x = -2;
+    } else {
+        wholeCube.rotation.x = 0.3;
+        wholeCube.rotation.y = 0.3;
+        wholeCube.position.x = 0;
+    }
 }
 
 window.rotate = (fx, fy, fz, tx, ty, tz, xr, yr, zr, callBack) => {
@@ -112,7 +133,8 @@ window.rotate = (fx, fy, fz, tx, ty, tz, xr, yr, zr, callBack) => {
 }
 
 function cubeIndex(x, y, z) {
-    return ((z + 1) * 3 + (y + 1)) * 3 + x + 1;
+    var ci = (((z + 1) * 3 + (y + 1)) * 3 + x + 1);
+    return showBack ? ci * 2 : ci;
 }
 
 function getColour(colour) 
@@ -126,15 +148,29 @@ function getColour(colour)
     return sideNone;
 }
 
-function makeCube(x, y, z, sides) {
-    const cube = new THREE.Mesh(geometry, sides);
-    const twist = new THREE.Object3D();
-    wholeCube.add(twist);
-    twist.add(cube);
-    cube.position.x = x * 1.02;
-    cube.position.y = y * 1.02;
-    cube.position.z = z * 1.02;
-    return twist;
+function makeCube(ci, x, y, z, sides) {
+    {
+        const cube = new THREE.Mesh(geometry, sides);
+        const twist = new THREE.Object3D();
+        wholeCube.add(twist);
+        twist.add(cube);
+        cube.position.x = x * 1.02;
+        cube.position.y = y * 1.02;
+        cube.position.z = z * 1.02;
+        cubes[ci] = twist;
+    }
+
+    if(showBack)
+    {
+        const cube = new THREE.Mesh(geometry, sides);
+        const twist = new THREE.Object3D();
+        wholeCubeBack.add(twist);
+        twist.add(cube);
+        cube.position.x = x * 1.02;
+        cube.position.y = y * 1.02;
+        cube.position.z = z * 1.02;
+        cubes[ci + 1] = twist;
+    }
 }
 
 function resizeRendererToDisplaySize(renderer) {
@@ -167,9 +203,11 @@ function render(time) {
             for (let y = rotating.fromY; y <= rotating.toY; y++) {
                 for (let z = rotating.fromZ; z <= rotating.toZ; z++) {
                     var ci = cubeIndex(x, y, z);
-                    cubes[ci].rotation.x = rotating.rotateX * pieceRot;
-                    cubes[ci].rotation.y = rotating.rotateY * pieceRot;
-                    cubes[ci].rotation.z = rotating.rotateZ * pieceRot;
+                    for(let i=0; i<(showBack ? 2 : 1); i++) {
+                        cubes[ci+i].rotation.x = rotating.rotateX * pieceRot;
+                        cubes[ci+i].rotation.y = rotating.rotateY * pieceRot;
+                        cubes[ci+i].rotation.z = rotating.rotateZ * pieceRot;
+                    }
                 }
             }
         }

@@ -12,6 +12,7 @@
     <button @onclick="RotateYAnti">Rotate &gt;</button>
     <button @onclick="RotateZClock">Rotate ,-&gt;</button>
     <button @onclick="RotateZAnti">Rotate &lt;-,</button>
+    <button @onclick="ToggleBack">Toggle back</button>
     <br />
     <button @onclick="LeftUp">Left ^</button>
     <button @onclick="LeftDown">Left v</button>
@@ -46,7 +47,7 @@
     private void Build(Cube cube)
     {
 
-        jsRuntime.InvokeVoidAsync("clearScene");
+        jsRuntime.InvokeVoidAsync("clearScene", _showBack);
         for (int x = -1; x < 2; x++)
         {
             for (int y = -1; y < 2; y++)
@@ -84,6 +85,13 @@
 
         };
         return piece.ToString().Substring(0, 1);
+    }
+
+    private bool _showBack = false;
+    private void ToggleBack()
+    {
+        _showBack = !_showBack;
+        Build(_cube);
     }
 
     private DotNetObjectReference<Index> _referenceForJSCallBack;
